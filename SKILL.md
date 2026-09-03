@@ -29,6 +29,7 @@ SOP（人做法）：`workflows/tender_comparison.md`
 4. **`input/` 同 `tools/` 只讀。** 只寫入 `outputs/`。
 5. **附註細字係重點。** 加價條款、高訂金、短保修比一張靚表更重要。
 6. **最終交付係 PDF。** 唔係 markdown、唔係 HTML —— 決定人拎住嘅係 `outputs/tender_comparison_report.pdf`。
+7. **唔好安裝任何嘢。** Tools 會自動用環境現有嘅 library（見下面 Environment）。唔好 `pip install`、唔好 download、唔好問人批准下載 —— 如果 tool 話冇某個能力，照佢講嘅 fallback 繼續，並喺回報講明。
 
 ## Tools 確定性工具
 
@@ -38,7 +39,13 @@ SOP（人做法）：`workflows/tender_comparison.md`
 | 2 | COMPARE | `tools/compare_tenders.py` | JSON + `config/scope_benchmarks.json` → `outputs/tender_comparison.md` |
 | 3 | RENDER | `tools/render_comparison_pdf.py` | JSON + 建議 md + `config/brand.json` → `outputs/tender_comparison_report.html` → **`.pdf`** |
 
-三個 tool 都係純 regex / 算術 / 模板：唔會 call model、唔上網（PDF 由本機 headless Chrome / Edge 印出）。由 repo 任何位置行都得。
+三個 tool 都係純 regex / 算術 / 模板：唔會 call model、唔上網。由 repo 任何位置行都得。
+
+## Environment 環境（tools 自己適應，agent 唔使做嘢）
+
+- **讀 PDF**：`extract_tenders.py` 順序試 PyMuPDF → pypdf → pdfminer.six → poppler `pdftotext`，有一個就得（輸出會標明用咗邊個 reader）。
+- **出 PDF**：`render_comparison_pdf.py` 有 Chrome / Edge 就用（`CHROME_PATH` 可指定）；冇就用 reportlab 內置中文字體出同一份報告；兩樣都冇就留低 HTML 並講明。
+- 冇一個步驟需要下載任何嘢。
 
 ## Run 執行
 

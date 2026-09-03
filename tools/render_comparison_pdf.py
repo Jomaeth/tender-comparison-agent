@@ -3,7 +3,8 @@
 """RENDER — build the OpenDeedigital-styled comparison report (HTML) and print it to PDF.
 
 Deterministic: templating only. The PDF is produced by headless Chrome / Edge
-(found automatically; override with CHROME_PATH). No model, no network.
+(found automatically; override with CHROME_PATH); if none is installed it falls
+back to reportlab (built-in CJK font, nothing to download). No model, no network.
 Usage:
     python tools/render_comparison_pdf.py \
         --extracted outputs/tenders_extracted.json \
@@ -104,6 +105,103 @@ def html_to_pdf(html_path: Path, pdf_path: Path) -> bool:
         if pdf_path.exists() and pdf_path.stat().st_size > 1000:
             return True
     return False
+
+
+def reportlab_pdf(data: dict, cfg: dict, brand: dict, recommendation_md: str | None, logo_path: Path | None, out: Path) -> bool:
+    """Fallback when no Chrome/Edge is installed: same content, simpler layout, pure Python.
+    Uses reportlab's built-in CJK CID font, so no font files are needed."""
+    try:
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import A4
+        from reportlab.lib.styles import ParagraphStyle
+        from reportlab.lib.units import mm
+        from reportlab.pdfbase import pdfmetrics
+        from reportlab.pdfbase.cidfonts import UnicodeCIDFont
+        from reportlab.platypus import Image, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+    except Exception:
+        return False
+    pdfmetrics.registerFont(UnicodeCIDFont("STSong-Light"))
+    F = "STSong-Light"
+    P, S, A, D, L = (colors.HexColor(brand[k]) for k in ("primary_color", "secondary_color", "accent_color", "dark_color", "light_color"))
+    st = brand.get("status_colors", {"go": "#1F9D55", "control": "#E5A823", "stop": "#D7263D"})
+    tenders = data["tenders"]
+    results = [(t, assess(t, cfg)) for t in tenders]
+    cheapest_l4l = min(results, key=lambda tr: tr[1]["like_for_like_hkd"])[0]["label"]
+    cheapest_headline = min(tenders, key=lambda t: t["total_hkd"] or 1e12)["label"]
+
+    h1 = ParagraphStyle("h1", fontName=F, fontSize=18, leading=22, textColor=colors.white)
+    sub = ParagraphStyle("sub", fontName=F, fontSize=9.5, leading=12, textColor=colors.white)
+    h2 = ParagraphStyle("h2", fontName=F, fontSize=12.5, leading=16, textColor=S, spaceBefore=10, spaceAfter=4)
+    h3 = ParagraphStyle("h3", fontName=F, fontSize=10.5, leading=13, textColor=D, spaceBefore=6)
+    body = ParagraphStyle("b", fontName=F, fontSize=9, leading=12, textColor=D)
+    small = ParagraphStyle("s", fontName=F, fontSize=8, leading=10.5, textColor=colors.HexColor("#6B7280"))
+    draft = ParagraphStyle("d", fontName=F, fontSize=9, leading=11, textColor=A)
+
+    doc = SimpleDocTemplate(str(out), pagesize=A4, leftMargin=14 * mm, rightMargin=14 * mm, topMargin=14 * mm, bottomMargin=16 * mm,
+                            title=f"標書比較報告 — {cfg['project']}", author=brand["name"])
+    story = []
+    band_cells = [[Paragraph("標書比較報告", h1), ""]]
+    band_cells.append([Paragraph(esc(cfg["project"]), sub), ""])
+    if logo_path and logo_path.exists():
+        try:
+            band_cells[0][1] = Image(str(logo_path), width=40 * mm, height=6.25 * mm)
+        except Exception:
+            pass
+    band = Table(band_cells, colWidths=[130 * mm, 52 * mm])
+    band.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), S), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                              ("LEFTPADDING", (0, 0), (-1, -1), 10), ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+                              ("ALIGN", (1, 0), (1, 0), "RIGHT"), ("SPAN", (1, 0), (1, 1))]))
+    story += [band, Spacer(1, 4), Paragraph("DRAFT · 待審批", draft),
+              Paragraph(f"產生日期 {dt.date.today():%Y-%m-%d} · 補回項目為估算 · 基準：{esc(cfg['benchmark_source'])}", small)]
+
+    story.append(Paragraph("一、同一比較基準", h2))
+    head = ["公司", "表面總價", "補回", "可比較總成本", "工期", "訂金", "保修", "有效期", "風險"]
+    rows = [head]
+    for t, r in results:
+        fill_sum = sum(f["benchmark_hkd"] for f in r["fills"]); wm = t["warranty_months"]
+        rows.append([t["label"], hk(t["total_hkd"]), ("+ " + hk(fill_sum)) if fill_sum else "—", hk(r["like_for_like_hkd"]),
+                     f"{t['duration_weeks'] or '—'} 週", f"{t['deposit_pct'] if t['deposit_pct'] is not None else '—'}%",
+                     f"{wm:g} 個月" if wm is not None else "—", f"{t['validity_days'] or '—'} 天", f"{len(r['flags'])} 項"])
+    tbl = Table(rows, colWidths=[34 * mm, 25 * mm, 22 * mm, 28 * mm, 14 * mm, 12 * mm, 16 * mm, 16 * mm, 14 * mm], repeatRows=1)
+    ts = [("FONTNAME", (0, 0), (-1, -1), F), ("FONTSIZE", (0, 0), (-1, -1), 8.5), ("BACKGROUND", (0, 0), (-1, 0), S),
+          ("TEXTCOLOR", (0, 0), (-1, 0), colors.white), ("LINEBELOW", (0, 1), (-1, -1), 0.4, colors.HexColor("#E5E7EB")),
+          ("ALIGN", (1, 1), (3, -1), "RIGHT"), ("TEXTCOLOR", (3, 1), (3, -1), S), ("VALIGN", (0, 0), (-1, -1), "MIDDLE")]
+    for idx, (t, r) in enumerate(results, start=1):
+        if t["label"] == cheapest_l4l:
+            ts.append(("BACKGROUND", (0, idx), (-1, idx), L))
+        c = st["stop"] if len(r["flags"]) >= 3 else (st["control"] if r["flags"] else st["go"])
+        ts.append(("TEXTCOLOR", (8, idx), (8, idx), colors.HexColor(c)))
+    tbl.setStyle(TableStyle(ts))
+    story += [tbl, Paragraph(f"表面最平：{esc(cheapest_headline)} · 補回不包括項目後最平：{esc(cheapest_l4l)}", small)]
+
+    story.append(Paragraph("二、每份標書：補回明細與風險條款", h2))
+    for t, r in results:
+        story.append(Paragraph(f"{esc(t['label'])} — 表面 {hk(t['total_hkd'])} → 可比較 {hk(r['like_for_like_hkd'])}", h3))
+        if r["fills"]:
+            for f in r["fills"]:
+                story.append(Paragraph(f"• {esc(f['label'])}：+{hk(f['benchmark_hkd'])}（估算 · 基準 {esc(f['benchmark_ref'])}）— 證據：「{esc(f['evidence'][:60])}」", body))
+        else:
+            story.append(Paragraph("• 補回項目：無 — 分項已覆蓋全部基準範圍", body))
+        story.append(Paragraph("風險條款：" + ("；".join(esc(x) for x in r["flags"]) if r["flags"] else "未見"), body))
+        if t["payment_terms"]:
+            story.append(Paragraph("付款：" + esc(t["payment_terms"]), small))
+
+    story.append(Paragraph("三、建議（初稿）", h2))
+    if recommendation_md:
+        for raw in recommendation_md.splitlines():
+            line = raw.strip().replace("**", "")
+            if not line or line.startswith("#"):
+                continue
+            story.append(Paragraph(("• " + line[2:]) if line.startswith(("- ", "* ")) else line, body))
+    else:
+        story.append(Paragraph("（建議初稿待 agent 依 SKILL.md 第 3 步填寫）", small))
+
+    story += [Spacer(1, 8), Paragraph("審批關卡 · Human-IN — 本報告不構成中標決定。決定人請確認補回估算、向投標者澄清（由人發出）、然後決定並簽名。", body)]
+    sig = Table([["審核人 / 決定人", "簽名", "日期"]], colWidths=[60 * mm, 60 * mm, 60 * mm])
+    sig.setStyle(TableStyle([("FONTNAME", (0, 0), (-1, -1), F), ("FONTSIZE", (0, 0), (-1, -1), 8.5), ("LINEABOVE", (0, 0), (-1, 0), 0.6, D), ("TOPPADDING", (0, 0), (-1, -1), 14)]))
+    story += [Spacer(1, 10), sig, Spacer(1, 6), Paragraph(f"{esc(brand['name'])} · Tender Comparison Agent · {esc(brand.get('footer', ''))}", small)]
+    doc.build(story)
+    return out.exists() and out.stat().st_size > 1000
 
 
 def build_html(data: dict, cfg: dict, brand: dict, recommendation_md: str | None, logo_b64: str | None) -> str:
@@ -248,10 +346,13 @@ def main() -> int:
     print(f"RENDER   HTML -> {out_html}")
 
     out_pdf = _resolve(a.out_pdf)
-    if html_to_pdf(out_html, out_pdf):
-        print(f"RENDER   PDF  -> {out_pdf}  ({out_pdf.stat().st_size // 1024} KB, A4, OpenDeedigital style)")
+    force = os.environ.get("TENDER_PDF_WRITER")  # chrome | reportlab (testing / override)
+    if force != "reportlab" and html_to_pdf(out_html, out_pdf):
+        print(f"RENDER   PDF  -> {out_pdf}  ({out_pdf.stat().st_size // 1024} KB, A4, OpenDeedigital style, via Chrome)")
+    elif reportlab_pdf(data, cfg, brand, rec_md, logo_path if logo_path.exists() else None, out_pdf):
+        print(f"RENDER   PDF  -> {out_pdf}  ({out_pdf.stat().st_size // 1024} KB, A4, OpenDeedigital style, via reportlab — no Chrome found)")
     else:
-        print("RENDER   PDF  -> skipped: Chrome/Edge not found. Set CHROME_PATH, or open the HTML and print to PDF.")
+        print("RENDER   PDF  -> not produced: neither Chrome/Edge nor reportlab is available. The HTML above is complete — open it and print to PDF. Do not install anything to work around this.")
     if rec_md is None:
         print("         note: recommendation file not found — PDF carries a placeholder; re-run after writing it.")
     return 0

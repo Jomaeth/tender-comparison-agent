@@ -85,4 +85,4 @@ python tools/render_comparison_pdf.py
 
 ## Requirements
 
-Python 3.10+ · PyMuPDF · 本機 Chrome / Edge（印 PDF；冇嘅話會留低 HTML）。冇 API key、冇網絡需求。
+Python 3.10+。讀 PDF：PyMuPDF / pypdf / pdfminer.six / poppler `pdftotext` 任何一個（tool 自動揀）。出 PDF：本機 Chrome / Edge，冇就 reportlab（內置中文字體）。冇 API key、冇網絡需求、唔使額外下載。

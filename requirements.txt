@@ -1,1 +1,7 @@
-pymupdf>=1.24
+# One PDF text reader is enough — the tools use whichever is installed
+# (PyMuPDF -> pypdf -> pdfminer.six -> poppler pdftotext). pypdf is the lightest.
+pypdf>=4.0
+# PDF output: headless Chrome/Edge if present, otherwise reportlab (built-in CJK font).
+reportlab>=4.0
+# Optional, faster text layer:
+# pymupdf>=1.24
