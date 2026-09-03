@@ -1,0 +1,17 @@
+{
+  "name": "OpenDeedigital",
+  "short_name": "ODD",
+  "logo_path": "brand_assets/ODD Logo.png",
+  "primary_color": "#F36B15",
+  "secondary_color": "#9B0A68",
+  "accent_color": "#C83D3D",
+  "dark_color": "#231F20",
+  "light_color": "#FFF7F0",
+  "status_colors": {
+    "go": "#1F9D55",
+    "control": "#E5A823",
+    "stop": "#D7263D"
+  },
+  "font_stack": "-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Microsoft JhengHei', 'PingFang TC', 'Noto Sans TC', Roboto, Arial, sans-serif",
+  "footer": "AI drafts · Human checks · Human signs"
+}
