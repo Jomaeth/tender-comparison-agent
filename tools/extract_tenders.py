@@ -4,7 +4,7 @@
 
 Deterministic: regex over the PDF text layer. No model, no network.
 Usage:
-    python tools/extract_tenders.py --input demo-data/tenders --out outputs/tenders_extracted.json
+    python tools/extract_tenders.py --input input/tenders --out outputs/tenders_extracted.json
 """
 from __future__ import annotations
 
@@ -126,7 +126,7 @@ def _num_plain(s: str | None) -> int | None:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--input", default="demo-data/tenders", help="folder containing tender PDFs")
+    ap.add_argument("--input", default="input/tenders", help="folder containing tender PDFs")
     ap.add_argument("--out", default="outputs/tenders_extracted.json")
     a = ap.parse_args()
 
