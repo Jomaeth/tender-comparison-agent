@@ -1,0 +1,19 @@
+{
+  "project": "觀塘海濱道 88 號 12 樓辦公室裝修工程（標書編號 TQ-2026-018）",
+  "benchmark_source": "以最完整之標書（宏基裝飾工程 Tender A）分項價作為補回基準；廢料處置取快達附註 3 所述 HK$35,000–50,000 之中位數",
+  "scope_items": [
+    {"key": "aircon",   "label": "冷氣風口及風喉改動（連平衡測試）",     "keywords": ["冷氣"],            "benchmark_hkd": 132000, "benchmark_ref": "Tender A 第 6 項"},
+    {"key": "fire",     "label": "消防裝置改動及 FS251 呈報",             "keywords": ["消防", "FS251"],   "benchmark_hkd": 166000, "benchmark_ref": "Tender A 第 7 項"},
+    {"key": "acoustic", "label": "會議室隔音 / 聲學工程",                 "keywords": ["隔音", "聲學"],    "benchmark_hkd": 98000,  "benchmark_ref": "Tender A 第 8 項"},
+    {"key": "waste",    "label": "清拆廢料運輸及堆填區處置",               "keywords": ["廢料"],            "benchmark_hkd": 45000,  "benchmark_ref": "Tender B 附註 3（HK$35,000–50,000 中位數）"}
+  ],
+  "exclusion_keywords": ["不包括", "不含", "另行報價", "另行收取", "實報實銷", "自行委聘"],
+  "risk_rules": {
+    "deposit_pct_max": 10,
+    "warranty_months_min": 12,
+    "validity_days_min": 60,
+    "escalation_keywords": ["波動", "市價", "差額按實調整"],
+    "provisional_keywords": ["暫定數", "Provisional"],
+    "conditional_programme_keywords": ["前提", "順延", "恕不負責"]
+  }
+}
