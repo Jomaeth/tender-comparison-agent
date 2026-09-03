@@ -23,4 +23,5 @@ input/*
 !input/.gitkeep
 !input/README.md
 !input/tenders/
+input/tenders/*
 !input/tenders/.gitkeep
