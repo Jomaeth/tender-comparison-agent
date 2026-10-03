@@ -1,0 +1,13 @@
+{
+  "id": "tender-comparison-agent",
+  "name": "Tender comparison agent",
+  "line": "ODD/products",
+  "class": "A",
+  "stage": "skill built; PDF output; no-install rule",
+  "last_result": "PDF reader fallbacks and branded PDF export 2026-09-03",
+  "next": "confirm use; candidate for a golden-file loop pilot like monthly-report-agent",
+  "blocked_on": "JM",
+  "updated": "2026-09-03",
+  "parked": false,
+  "draft_basis": "inferred 2026-10-03 from README/handoff/commits; JM to confirm"
+}
