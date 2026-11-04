@@ -2,12 +2,25 @@
 
 Agent skill：將同一項工程嘅多份標書（PDF）砌返同一比較基準，標出風險條款，出一份 **OpenDeedigital 風格嘅 A4 PDF 比較報告**（連建議初稿同審批簽名欄）。AI 起草，人決定。
 
+## Skill layers 技能層級 (EN / 繁中)
+
+| Layer 層 | File 檔案 | English | 繁體中文 |
+|---|---|---|---|
+| 1 | [`PROJECT.md`](PROJECT.md) | Work context: purpose, files, data handling, environment, how to open in Codex. | 工作背景：目的、檔案、資料處理、環境、於 Codex 開啟的方法。 |
+| 2 | [`AGENT.md`](AGENT.md) | Role, permissions, and how the model is constrained. | 角色、權限，以及模型如何受到約束。 |
+| 3 | [`SKILL.md`](SKILL.md) | Ordered procedure; every step tagged `[DET]` deterministic Python, `[LLM]` bounded LLM, `[HUM]` human gate, `[CFG]` configuration. | 有序程序；每步標示 `[DET]` 確定性 Python、`[LLM]` 受限 LLM、`[HUM]` 人手關卡、`[CFG]` 設定。 |
+
+**Data policy 資料政策：** this repository holds instructions, tools and configuration only. Demonstration tender PDFs and generated reports stay on the presenter's machine (`input/` and `outputs/` are git-ignored).
+本 repo 僅存放指令、工具及設定；示範標書 PDF 及所生成報告只存放於講者本機（`input/` 與 `outputs/` 已被 git 排除）。
+
 ## Structure
 
 ```
 tender-comparison-agent/
-├── SKILL.md                        [md]      agent 指令：Intent · Rules · Tools · Run · Gate · Style
-├── AGENTS.md                       [md]      Codex / agent 入口 → 指向 SKILL.md
+├── PROJECT.md                      [md]      Layer 1 · 工作背景
+├── AGENT.md                        [md]      Layer 2 · 角色與權限
+├── SKILL.md                        [md]      Layer 3 · 程序（每步標 DET / LLM / HUM / CFG）
+├── AGENTS.md                       [md]      Codex / agent 入口 → 指向以上三個檔案
 ├── workflows/
 │   └── tender_comparison.md        [md]      人做法 SOP —— skill 跟呢份寫
 ├── tools/                          [python]  3 個 deterministic tool
